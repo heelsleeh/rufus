@@ -13,6 +13,24 @@
 #define IDD_CHECKSUM                    109
 #define IDD_LIST                        110
 #define IDI_ICON                        120
+#define IDI_LANG_16                     121
+#define IDI_INFO_16                     122
+#define IDI_SETTINGS_16                 123
+#define IDI_LOG_16                      124
+#define IDI_SAVE_16                     125
+#define IDI_HASH_16                     126
+#define IDI_LANG_24                     131
+#define IDI_INFO_24                     132
+#define IDI_SETTINGS_24                 133
+#define IDI_LOG_24                      134
+#define IDI_SAVE_24                     135
+#define IDI_HASH_24                     136
+#define IDI_LANG_32                     141
+#define IDI_INFO_32                     142
+#define IDI_SETTINGS_32                 143
+#define IDI_LOG_32                      144
+#define IDI_SAVE_32                     145
+#define IDI_HASH_32                     146
 #define IDD_DIALOG_XP                   151
 #define IDD_ABOUTBOX_XP                 152
 #define IDD_NOTIFICATION_XP             153
@@ -73,6 +91,8 @@
 #define IDR_UEFI_NTFS                   502
 #define IDR_TOGO_SAN_POLICY_XML         503
 #define IDR_TOGO_UNATTEND_XML           504
+#define IDM_SELECT                      901
+#define IDM_DOWNLOAD                    902
 #define IDC_DEVICE                      1001
 #define IDC_FILE_SYSTEM                 1002
 #define IDC_START                       1003
@@ -90,13 +110,18 @@
 #define IDC_EXTENDED_LABEL              1015
 #define IDC_RUFUS_MBR                   1016
 #define IDC_TARGET_SYSTEM               1017
+#define IDC_PERSISTENCE_SIZE            1018
+#define IDC_PERSISTENCE_UNITS           1019
 #define IDC_DISK_ID                     1020
 #define IDC_OLD_BIOS_FIXES              1021
 #define IDC_LIST_USB_HDD                1022
 #define IDC_STATUS_TOOLBAR              1023
-#define IDC_HASH                        1024
-#define IDC_SAVE                        1025
+#define IDC_SAVE                        1024
+#define IDC_HASH                        1025
 #define IDC_IMAGE_OPTION                1026
+#define IDC_PERSISTENCE_SLIDER          1027
+#define IDC_ADVANCED_DRIVE_PROPERTIES   1028
+#define IDC_ADVANCED_FORMAT_OPTIONS     1029
 #define IDC_ABOUT_LICENSE               1030
 #define IDC_ABOUT_ICON                  1031
 #define IDC_ABOUT_COPYRIGHTS            1032
@@ -107,8 +132,9 @@
 #define IDC_NOTIFICATION_LINE           1042
 #define IDC_ADVANCED_DEVICE_TOOLBAR     1043
 #define IDC_ADVANCED_FORMAT_TOOLBAR     1044
-#define IDC_CHECKSUM_TOOLBAR            1049
-#define IDC_MULTI_TOOLBAR               1050
+#define IDC_SAVE_TOOLBAR                1045
+#define IDC_HASH_TOOLBAR                1046
+#define IDC_MULTI_TOOLBAR               1047
 #define IDC_LANG                        1051
 #define IDC_ABOUT                       1052
 #define IDC_SETTINGS                    1053
@@ -116,6 +142,7 @@
 #define IDC_LOG_EDIT                    1055
 #define IDC_LOG_SAVE                    1056
 #define IDC_LOG_CLEAR                   1057
+#define IDC_DONT_DISPLAY_AGAIN          1059
 #define IDC_MORE_INFO                   1060
 #define IDC_POLICY                      1061
 #define IDC_UPDATE_FREQUENCY            1062
@@ -168,8 +195,6 @@
 #define IDC_LIST_ITEM14                 1109
 #define IDC_LIST_ITEM15                 1110
 #define IDC_LIST_ITEMMAX                1111
-#define IDC_ADVANCED_DRIVE_PROPERTIES   1112
-#define IDC_ADVANCED_FORMAT_OPTIONS     1113
 #define IDS_DEVICE_TXT                  2000
 #define IDS_PARTITION_TYPE_TXT          2001
 #define IDS_FILE_SYSTEM_TXT             2002
@@ -519,7 +544,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        505
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1114
+#define _APS_NEXT_CONTROL_VALUE         1112
 #define _APS_NEXT_SYMED_VALUE           4000
 #endif
 #endif

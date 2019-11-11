@@ -1,7 +1,7 @@
 /*
  * Rufus: The Reliable USB Formatting Utility
  * Elementary Unicode compliant find/replace parser
- * Copyright © 2012-2017 Pete Batard <pete@akeo.ie>
+ * Copyright © 2012-2018 Pete Batard <pete@akeo.ie>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -245,7 +245,7 @@ BOOL get_supported_locales(const char* filename)
 	loc_cmd *lcmd = NULL, *last_lcmd = NULL;
 	long end_of_block;
 	int version_line_nr = 0;
-	uint32_t loc_base_minor = -1, loc_base_micro = -1;
+	uint32_t loc_base_major = -1, loc_base_minor = -1;
 
 	fd = open_loc_file(filename);
 	if (fd == NULL)
@@ -326,30 +326,23 @@ BOOL get_supported_locales(const char* filename)
 		case LC_VERSION:
 			if (version_line_nr != 0) {
 				luprintf("[v]ersion was already provided at line %d", version_line_nr);
-			} else if (lcmd->unum_size != 3) {
+			} else if (lcmd->unum_size != 2) {
 				luprint("[v]ersion format is invalid");
 			} else if (last_lcmd == NULL) {
 				luprint("[v]ersion cannot precede [l]ocale");
-			} else if (lcmd->unum[0] != LOC_FRAMEWORK_VERSION) {
-				// If the localization framework evolved in a manner that makes existing
-				// translations incompatible, we need to discard them.
-				luprint("[v]ersion is not compatible with this framework");
-			} else if (loc_base_minor == -1) {
+			} else if (loc_base_major == -1) {
 				// We use the first version from our loc file (usually en-US) as our base
 				// as it should always be the most up to date.
+				loc_base_major = lcmd->unum[0];
 				loc_base_minor = lcmd->unum[1];
-				loc_base_micro = lcmd->unum[2];
 				version_line_nr = loc_line_nr;
-			} else if (lcmd->unum[1] < loc_base_minor) {
-				luprintf("the version of this locale is incompatible with this version of " APPLICATION_NAME " and MUST be updated to at least v%d.%d.0",
-					LOC_FRAMEWORK_VERSION, loc_base_minor);
 			} else {
-				if (lcmd->unum[2] < loc_base_micro) {
+				if ((lcmd->unum[0] < loc_base_major) || ((lcmd->unum[0] == loc_base_major) && (lcmd->unum[1] < loc_base_minor))) {
 					last_lcmd->ctrl_id |= LOC_NEEDS_UPDATE;
 					luprintf("the version of this translation is older than the base one and may result in some messages not being properly translated.\n"
-						"If you are the translator, please update your translation with the changes that intervened between v%d.%d.%d and v%d.%d.%d.\n"
-						"See https://github.com/pbatard/rufus/blob/master/res/localization/ChangeLog.txt",
-						LOC_FRAMEWORK_VERSION, loc_base_minor, lcmd->unum[2], LOC_FRAMEWORK_VERSION, loc_base_minor, loc_base_micro);
+						"If you are the translator, please update your translation with the changes that intervened between v%d.%d and v%d.%d.\n"
+						"See https://github.com/pbatard/rufus/blob/master/res/loc/ChangeLog.txt",
+						lcmd->unum[0], lcmd->unum[1], loc_base_major, loc_base_minor);
 				}
 				version_line_nr = loc_line_nr;
 			}
@@ -379,7 +372,6 @@ out:
 /*
  * Parse a locale section in a localization file (UTF-8, no BOM)
  * NB: this call is reentrant for the "base" command support
- * TODO: Working on memory rather than on file would improve performance
  */
 BOOL get_loc_data_file(const char* filename, loc_cmd* lcmd)
 {
@@ -789,13 +781,15 @@ char* set_token_data_file(const char* token, const char* data, const char* filen
 		fputws(buf, fd_out);
 
 		// Now output the new data
-		fwprintf(fd_out, L"%s\n", wdata);
+		// coverity[invalid_type]
+		fwprintf_s(fd_out, L"%s\n", wdata);
 		ret = (char*)data;
 	}
 
 	if (ret == NULL) {
 		// Didn't find an existing token => append it
-		fwprintf(fd_out, L"%s = %s\n", wtoken, wdata);
+		// coverity[invalid_type]
+		fwprintf_s(fd_out, L"%s = %s\n", wtoken, wdata);
 		ret = (char*)data;
 	}
 
@@ -910,9 +904,11 @@ void parse_update(char* buf, size_t len)
 	char *data = NULL, *token;
 	char allowed_rtf_chars[] = "abcdefghijklmnopqrstuvwxyz|~-_:*'";
 	char allowed_std_chars[] = "\r\n ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"$%^&+=<>(){}[].,;#@/?";
+	char download_url_name[24];
+	char *arch_names[CPU_ARCH_MAX] = { "x86", "x64", "arm", "arm64", "none" };
 
 	// strchr includes the NUL terminator in the search, so take care of backslash before NUL
-	if ((buf == NULL) || (len < 2) || (len > 65536) || (buf[len-1] != 0) || (buf[len-2] == '\\'))
+	if ((buf == NULL) || (len < 2) || (len > 64 * KB) || (buf[len-1] != 0) || (buf[len-2] == '\\'))
 		return;
 	// Sanitize the data - Not a silver bullet, but it helps
 	len = safe_strlen(buf)+1;	// Someone may be inserting NULs
@@ -946,7 +942,10 @@ void parse_update(char* buf, size_t len)
 		}
 		safe_free(data);
 	}
-	update.download_url = get_sanitized_token_data_buffer("download_url", 1, buf, len);
+	static_sprintf(download_url_name, "download_url_%s", arch_names[GetCpuArch()]);
+	update.download_url = get_sanitized_token_data_buffer(download_url_name, 1, buf, len);
+	if (update.download_url == NULL)
+		update.download_url = get_sanitized_token_data_buffer("download_url", 1, buf, len);
 	update.release_notes = get_sanitized_token_data_buffer("release_notes", 1, buf, len);
 }
 
@@ -1041,7 +1040,8 @@ char* insert_section_data(const char* filename, const char* section, const char*
 		// Section was found, output it
 		fputws(buf, fd_out);
 		// Now output the new data
-		fwprintf(fd_out, L"%s\n", wdata);
+		// coverity[invalid_type]
+		fwprintf_s(fd_out, L"%s\n", wdata);
 		ret = (char*)data;
 	}
 
@@ -1085,6 +1085,7 @@ out:
  * it with 'rep'. File can be ANSI or UNICODE and is overwritten. Parameters are UTF-8.
  * The parsed line is of the form: [ ]token[ ]data
  * Returns a pointer to rep if replacement occurred, NULL otherwise
+ * TODO: We might have to end up with a regexp engine, so that we can do stuff like: "foo*" -> "bar\1"
  */
 char* replace_in_token_data(const char* filename, const char* token, const char* src, const char* rep, BOOL dos2unix)
 {
@@ -1092,7 +1093,7 @@ char* replace_in_token_data(const char* filename, const char* token, const char*
 	wchar_t *wtoken = NULL, *wfilename = NULL, *wtmpname = NULL, *wsrc = NULL, *wrep = NULL, bom = 0;
 	wchar_t buf[1024], *torep;
 	FILE *fd_in = NULL, *fd_out = NULL;
-	size_t i, size;
+	size_t i, ns, size;
 	int mode = 0;
 	char *ret = NULL, tmp[2];
 
@@ -1182,8 +1183,11 @@ char* replace_in_token_data(const char* filename, const char* token, const char*
 		// Token was found, move past token
 		i += wcslen(wtoken);
 
-		// Skip spaces
-		i += wcsspn(&buf[i], wspace);
+		// Skip whitespaces after token (while making sure there's at least one)
+		ns = wcsspn(&buf[i], wspace);
+		if (ns == 0)
+			continue;
+		i += ns;
 
 		torep = wcsstr(&buf[i], wsrc);
 		if (torep == NULL) {
@@ -1193,7 +1197,8 @@ char* replace_in_token_data(const char* filename, const char* token, const char*
 
 		i = (torep-buf) + wcslen(wsrc);
 		*torep = 0;
-		fwprintf(fd_out, L"%s%s%s", buf, wrep, &buf[i]);
+		// coverity[invalid_type]
+		fwprintf_s(fd_out, L"%s%s%s", buf, wrep, &buf[i]);
 		ret = (char*)rep;
 	}
 

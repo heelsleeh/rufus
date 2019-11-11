@@ -1,6 +1,6 @@
 /*
  * Rufus: The Reliable USB Formatting Utility
- * UI element lists
+ * UI-related function calls
  * Copyright © 2018 Pete Batard <pete@akeo.ie>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,166 +18,89 @@
  */
 
 #include <windows.h>
+#include <stdint.h>
 #include "resource.h"
 
 #pragma once
 
-static int image_option_move_ids[] = {
-	IDS_PARTITION_TYPE_TXT,
-	IDC_PARTITION_TYPE,
-	IDS_TARGET_SYSTEM_TXT,
-	IDC_TARGET_SYSTEM,
-	IDS_CSM_HELP_TXT,
-	IDC_ADVANCED_DEVICE_TOOLBAR,
-	IDC_LIST_USB_HDD,
-	IDC_OLD_BIOS_FIXES,
-	IDC_RUFUS_MBR,
-	IDC_DISK_ID,
-	IDS_FORMAT_OPTIONS_TXT,
-	IDS_LABEL_TXT,
-	IDC_LABEL,
-	IDS_FILE_SYSTEM_TXT,
-	IDC_FILE_SYSTEM,
-	IDS_CLUSTER_SIZE_TXT,
-	IDC_CLUSTER_SIZE,
-	IDC_ADVANCED_FORMAT_TOOLBAR,
-	IDC_QUICK_FORMAT,
-	IDC_BAD_BLOCKS,
-	IDC_NB_PASSES,
-	IDC_EXTENDED_LABEL,
-	IDS_STATUS_TXT,
-	IDC_PROGRESS,
-	IDC_ABOUT,
-	IDC_LOG,
-	IDC_MULTI_TOOLBAR,
-	IDC_TEST,
-	IDC_START,
-	IDCANCEL,
-	IDC_STATUS,
-	IDC_STATUS_TOOLBAR,
+// Progress bar colors
+#define PROGRESS_BAR_NORMAL_TEXT_COLOR		RGB(0x00, 0x00, 0x00)
+#define PROGRESS_BAR_INVERTED_TEXT_COLOR	RGB(0xFF, 0xFF, 0xFF)
+#define PROGRESS_BAR_BACKGROUND_COLOR		RGB(0xE6, 0xE6, 0xE6)
+#define PROGRESS_BAR_BOX_COLOR				RGB(0xBC, 0xBC, 0xBC)
+#define PROGRESS_BAR_NORMAL_COLOR			RGB(0x06, 0xB0, 0x25)
+#define PROGRESS_BAR_PAUSED_COLOR			RGB(0xDA, 0xCB, 0x26)
+#define PROGRESS_BAR_ERROR_COLOR			RGB(0xDA, 0x26, 0x26)
+
+// Toolbar icons main color
+#define TOOLBAR_ICON_COLOR					RGB(0x29, 0x80, 0xB9)
+
+// Toolbar default style
+#define TOOLBAR_STYLE						( WS_CHILD | WS_TABSTOP | WS_VISIBLE | \
+											  WS_CLIPSIBLINGS | WS_CLIPCHILDREN  | \
+											  CCS_NOPARENTALIGN | CCS_NODIVIDER  | \
+											  TBSTYLE_FLAT | TBSTYLE_BUTTON      | \
+											  TBSTYLE_AUTOSIZE | TBSTYLE_LIST    | \
+											  TBSTYLE_TOOLTIPS )
+
+// Types of update progress we report
+enum update_progress_type {
+	UPT_PERCENT = 0,
+	UPT_SPEED,
+	UPT_ETA,
+	UPT_MAX
 };
 
-static int image_option_toggle_ids[] = {
-	IDS_IMAGE_OPTION_TXT,
-	IDC_IMAGE_OPTION,
-};
+// Size of the download speed history ring.
+#define SPEED_HISTORY_SIZE 20
 
-static int advanced_device_move_ids[] = {
-	IDC_LIST_USB_HDD,
-	IDC_OLD_BIOS_FIXES,
-	IDC_RUFUS_MBR,
-	IDS_FORMAT_OPTIONS_TXT,
-	IDS_LABEL_TXT,
-	IDC_LABEL,
-	IDS_FILE_SYSTEM_TXT,
-	IDC_FILE_SYSTEM,
-	IDS_CLUSTER_SIZE_TXT,
-	IDC_CLUSTER_SIZE,
-	IDC_ADVANCED_FORMAT_TOOLBAR,
-	IDC_QUICK_FORMAT,
-	IDC_BAD_BLOCKS,
-	IDC_NB_PASSES,
-	IDC_EXTENDED_LABEL,
-	IDS_STATUS_TXT,
-	IDC_PROGRESS,
-	IDC_ABOUT,
-	IDC_LOG,
-	IDC_MULTI_TOOLBAR,
-	IDC_TEST,
-	IDC_START,
-	IDCANCEL,
-	IDC_STATUS,
-	IDC_STATUS_TOOLBAR,
-};
+// The minimum time length of a history sample. By default, each sample is at least 150ms long,
+// which means that, over the course of 20 samples, "current" download speed spans at least 3s
+// into the past.
+#define SPEED_SAMPLE_MIN 150
 
-static int advanced_device_toggle_ids[] = {
-	IDC_SAVE,
-	IDC_LIST_USB_HDD,
-	IDC_OLD_BIOS_FIXES,
-	IDC_RUFUS_MBR,
-	IDC_DISK_ID,
-};
+// The time after which the download starts to be considered "stalled", i.e. the current
+// bandwidth is not printed and the recent download speeds are scratched.
+#define STALL_START_TIME 5000
 
-static int advanced_format_move_ids[] = {
-	IDS_STATUS_TXT,
-	IDC_PROGRESS,
-	IDC_ABOUT,
-	IDC_LOG,
-	IDC_MULTI_TOOLBAR,
-	IDC_TEST,
-	IDC_START,
-	IDCANCEL,
-	IDC_STATUS,
-	IDC_STATUS_TOOLBAR,
-};
+// Time between screen refreshes will not be shorter than this.
+// NB: In Rufus' case, "screen" means the text overlaid on the progress bar.
+#define SCREEN_REFRESH_INTERVAL 200
 
-static int advanced_format_toggle_ids[] = {
-	IDC_QUICK_FORMAT,
-	IDC_BAD_BLOCKS,
-	IDC_NB_PASSES,
-	IDC_EXTENDED_LABEL,
-};
+// Don't refresh the ETA too often to avoid jerkiness in predictions.
+// This allows ETA to change approximately once per second.
+#define ETA_REFRESH_INTERVAL 990
 
-static int main_button_ids[] = {
-	IDC_SELECT,
-	IDC_START,
-	IDCANCEL,
-};
+extern HWND hMultiToolbar, hSaveToolbar, hHashToolbar, hAdvancedDeviceToolbar, hAdvancedFormatToolbar;
+extern HFONT hInfoFont;
+extern UINT_PTR UM_LANGUAGE_MENU_MAX;
+extern BOOL advanced_mode_device, advanced_mode_format, force_large_fat32, app_changed_size;
+extern loc_cmd* selected_locale;
+extern uint64_t persistence_size;
+extern const char *sfd_name, *flash_type[BADLOCKS_PATTERN_TYPES];
+extern char *short_image_path, image_option_txt[128];
+extern int advanced_device_section_height, advanced_format_section_height;
+extern int windows_to_go_selection, persistence_unit_selection;
+extern int selection_default, cbw, ddw, ddbh, bh, update_progress_type;
 
-static int full_width_controls[] = {
-	IDS_DEVICE_TXT,
-	IDS_BOOT_SELECTION_TXT,
-	IDS_IMAGE_OPTION_TXT,
-	IDC_IMAGE_OPTION,
-	IDS_LABEL_TXT,
-	IDC_LABEL,
-	IDC_ADVANCED_DRIVE_PROPERTIES,
-	IDC_LIST_USB_HDD,
-	IDC_OLD_BIOS_FIXES,
-	IDC_ADVANCED_FORMAT_OPTIONS,
-	IDC_QUICK_FORMAT,
-	IDC_EXTENDED_LABEL,
-	IDC_PROGRESS,
-};
-
-static int full_width_checkboxes[] = {
-	IDC_LIST_USB_HDD,
-	IDC_OLD_BIOS_FIXES,
-	IDC_QUICK_FORMAT,
-	IDC_EXTENDED_LABEL,
-};
-
-static int half_width_ids[] = {
-	IDC_BAD_BLOCKS,
-	IDC_RUFUS_MBR,
-	IDS_PARTITION_TYPE_TXT,
-	IDC_PARTITION_TYPE,
-	IDC_FILE_SYSTEM,
-	IDS_TARGET_SYSTEM_TXT,
-	IDC_TARGET_SYSTEM,
-	IDC_DISK_ID,
-	IDS_CLUSTER_SIZE_TXT,
-	IDC_CLUSTER_SIZE,
-	IDC_NB_PASSES,
-};
-
-static int adjust_dpi_ids[][5] = {
-	{IDS_DEVICE_TXT, IDC_DEVICE, IDC_SAVE, 0, 0},
-	{IDS_BOOT_SELECTION_TXT, IDC_BOOT_SELECTION, IDC_HASH, IDC_SELECT, 0},
-	{IDS_IMAGE_OPTION_TXT, IDC_IMAGE_OPTION, 0, 0, 0},
-	{IDS_PARTITION_TYPE_TXT, IDC_PARTITION_TYPE, IDS_TARGET_SYSTEM_TXT, IDC_TARGET_SYSTEM, IDS_CSM_HELP_TXT},
-	{IDC_ADVANCED_DEVICE_TOOLBAR, 0, 0, 0, 0},
-	{IDC_LIST_USB_HDD, 0, 0, 0, 0 },
-	{IDC_OLD_BIOS_FIXES, 0, 0, 0, 0},
-	{IDC_RUFUS_MBR, IDC_DISK_ID, 0, 0, 0},
-	{IDS_FORMAT_OPTIONS_TXT, 0, 0, 0, 0},
-	{IDS_LABEL_TXT, IDC_LABEL, 0, 0, 0},
-	{IDS_FILE_SYSTEM_TXT, IDC_FILE_SYSTEM, IDS_CLUSTER_SIZE_TXT, IDC_CLUSTER_SIZE, 0},
-	{IDC_ADVANCED_FORMAT_TOOLBAR, 0, 0, 0, 0},
-	{IDC_QUICK_FORMAT, 0, 0, 0, 0},
-	{IDC_EXTENDED_LABEL, 0, 0, 0, 0},
-	{IDC_BAD_BLOCKS, IDC_NB_PASSES, 0, 0, 0},
-	{IDS_STATUS_TXT, 0, 0, 0, 0},
-	{IDC_PROGRESS, 0, 0, 0, 0 },
-	{IDC_MULTI_TOOLBAR, IDC_TEST, IDC_START, IDCANCEL, 0}
-};
+extern void SetComboEntry(HWND hDlg, int data);
+extern void GetBasicControlsWidth(HWND hDlg);
+extern void GetMainButtonsWidth(HWND hDlg);
+extern void GetHalfDropwdownWidth(HWND hDlg);
+extern void GetFullWidth(HWND hDlg);
+extern void PositionMainControls(HWND hDlg);
+extern void AdjustForLowDPI(HWND hDlg);
+extern void SetSectionHeaders(HWND hDlg);
+extern void SetPersistencePos(uint64_t pos);
+extern void SetPersistenceSize(void);
+extern void TogglePersistenceControls(BOOL display);
+extern void ToggleAdvancedDeviceOptions(BOOL enable);
+extern void ToggleAdvancedFormatOptions(BOOL enable);
+extern void ToggleImageOptions(void);
+extern void CreateSmallButtons(HWND hDlg);
+extern void CreateAdditionalControls(HWND hDlg);
+extern void InitProgress(BOOL bOnlyFormat);
+extern void ShowLanguageMenu(RECT rcExclude);
+extern void SetPassesTooltip(void);
+extern void SetBootTypeDropdownWidth(void);
+extern void OnPaint(HDC hdc);
